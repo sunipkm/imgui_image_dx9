@@ -57,7 +57,7 @@ typedef struct
 
 DWORD WINAPI ImageGenFunction(LPVOID _img)
 {
-    static int height = 256;
+    static int height = 128;
     static int width = 256;
     jpg_img *img = (jpg_img *)_img;
     printf("Thread: Ptr %p\n", _img);
@@ -65,8 +65,28 @@ DWORD WINAPI ImageGenFunction(LPVOID _img)
     {
         // create random static
         uint8_t *data = (uint8_t *)malloc(height * width * 3);
-        for (int i = 0; i < height * width * 3; i++)
-            data[i] = ::rand() % 0x100;
+        for (int i = 0; i < width; i++)
+        {
+            for (int j = 0; j < height; j++)
+            {
+                int idx = 3 * i * height + 3 * j;
+                // data[idx + 0] = ::rand() % 0x100; // random RED
+                // data[idx + 1] = ::rand() % 0x100; // random GREEN
+                // data[idx + 2] = ::rand() % 0x100; // random BLUE
+                if ((i / 16) % 2)
+                {
+                    data[idx + 0] = 0xff;
+                    data[idx + 1] = 0xff;
+                    data[idx + 2] = 0xff;
+                }
+                else
+                {
+                    data[idx + 0] = 0x0;
+                    data[idx + 1] = 0x0;
+                    data[idx + 2] = 0x0;
+                }
+            }
+        }
         // JPEG output buffer, has to be larger than expected JPEG size
         uint8_t *j_data = (uint8_t *)malloc(height * width * 4 + 1024);
         int j_data_sz = (height * width * 4 + 1024);
@@ -111,6 +131,23 @@ DWORD WINAPI ImageGenFunction(LPVOID _img)
     return NULL;
 }
 
+#define D3DXLoadTextureFromFileMemEx(dev, img, size, width, height, ptexture) \
+    D3DXCreateTextureFromFileInMemoryEx(dev,                                  \
+                                        img,                                  \
+                                        size,                                 \
+                                        width,                                \
+                                        height,                               \
+                                        D3DX_DEFAULT,                         \
+                                        0,                                    \
+                                        D3DFMT_FROM_FILE,                     \
+                                        D3DPOOL_DEFAULT,                      \
+                                        D3DX_FILTER_POINT,                    \
+                                        D3DX_DEFAULT,                         \
+                                        0,                                    \
+                                        NULL,                                 \
+                                        NULL,                                 \
+                                        ptexture)
+
 /**
  * @brief Load texture from file in memory
  * 
@@ -127,7 +164,8 @@ bool LoadTextureFromMemFile(const uint8_t *img, const int size, PDIRECT3DTEXTURE
 
     PDIRECT3DTEXTURE9 texture = NULL; // local texture, will be released when this function is called the next time
 
-    HRESULT hr = D3DXCreateTextureFromFileInMemory(g_pd3dDevice, img, size, &texture); // load image file to texture
+    // HRESULT hr = D3DXCreateTextureFromFileInMemory(g_pd3dDevice, img, size, &texture); // load image file to texture
+    HRESULT hr = D3DXLoadTextureFromFileMemEx(g_pd3dDevice, img, size, out_width, out_height, &texture); // load image file to texture
     if (hr != S_OK)
         return false;
 
@@ -275,10 +313,13 @@ int main(int, char **)
             EnterCriticalSection(img->lock); // acquire lock before loading texture
             if (img->size)                   // image available
             {
+                img_height = 256;
+                img_width = 512;
                 LoadTextureFromMemFile(img->data, img->size, img_texture, img_width, img_height);
             }
             LeaveCriticalSection(img->lock); // release lock
-            if (img_height > 0)              // image can be shown
+            ImGui::Text("Image: %d x %d pixels", img_width, img_height);
+            if (img_height > 0) // image can be shown
             {
                 ImGui::Image((void *)img_texture, ImVec2(img_width, img_height)); // show image
             }
