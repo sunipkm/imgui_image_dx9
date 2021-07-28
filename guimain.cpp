@@ -273,12 +273,12 @@ int main(int, char **)
             static PDIRECT3DTEXTURE9 img_texture = NULL;
 
             EnterCriticalSection(img->lock); // acquire lock before loading texture
-            if (img->size) // image available
+            if (img->size)                   // image available
             {
                 LoadTextureFromMemFile(img->data, img->size, img_texture, img_width, img_height);
             }
             LeaveCriticalSection(img->lock); // release lock
-            if (img_height > 0) // image can be shown
+            if (img_height > 0)              // image can be shown
             {
                 ImGui::Image((void *)img_texture, ImVec2(img_width, img_height)); // show image
             }
