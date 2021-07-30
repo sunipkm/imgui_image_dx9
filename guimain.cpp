@@ -184,6 +184,9 @@ bool LoadTextureFromMemFile(const uint8_t *img, const int size, PDIRECT3DTEXTURE
     return true;
 }
 // Main code
+static int img_width = 0;
+static int img_height = 0;
+static PDIRECT3DTEXTURE9 img_texture = NULL;
 int main(int, char **)
 {
     // Create application window
@@ -306,10 +309,6 @@ int main(int, char **)
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
 
-            static int img_width = 0;
-            static int img_height = 0;
-            static PDIRECT3DTEXTURE9 img_texture = NULL;
-
             EnterCriticalSection(img->lock); // acquire lock before loading texture
             if (img->size)                   // image available
             {
@@ -407,6 +406,11 @@ void CleanupDeviceD3D()
 
 void ResetDevice()
 {
+    img_width = 0;
+    img_height = 0;
+    if (img_texture != 0)
+        img_texture->Release();
+    img_texture = 0;
     ImGui_ImplDX9_InvalidateDeviceObjects();
     HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
     if (hr == D3DERR_INVALIDCALL)
@@ -432,6 +436,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
         if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
         {
+            // printf("%d x %d\n", LOWORD(lParam), HIWORD(lParam));
             g_d3dpp.BackBufferWidth = LOWORD(lParam);
             g_d3dpp.BackBufferHeight = HIWORD(lParam);
             ResetDevice();
