@@ -6,15 +6,21 @@
 #include "backend/imgui_impl_dx9.h"
 #include "backend/imgui_impl_win32.h"
 #include <windows.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <memory.h>
 #include <d3d9.h>
 #include <tchar.h>
 #include <strsafe.h>
 #include <stdint.h>
-#include <stdlib.h>
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include "jpge.h"
 
 #include <D3dx9tex.h>
 #pragma comment(lib, "D3dx9")
+
+#include "resource.h"
 
 // Data
 static LPDIRECT3D9 g_pD3D = NULL;
@@ -184,11 +190,16 @@ bool LoadTextureFromMemFile(const uint8_t *img, const int size, PDIRECT3DTEXTURE
     return true;
 }
 // Main code
-int main(int, char **)
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+                     _In_opt_ HINSTANCE hPrevInstance,
+                     _In_ LPWSTR    lpCmdLine,
+                     _In_ int       nCmdShow)
 {
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
-    WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL};
+    WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, hInstance, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINTEST)), NULL, NULL, NULL, _T("ImGui Example"), LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SMALL))};
     ::RegisterClassEx(&wc);
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Dear ImGui DirectX9 Image Example"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
@@ -323,6 +334,18 @@ int main(int, char **)
             {
                 ImGui::Image((void *)img_texture, ImVec2(img_width, img_height)); // show image
             }
+            static float data[32];
+            static bool genData = true;
+            if (genData)
+            {
+                for (int i = 0; i < 32; i += 2)
+                {
+                    data[i + 1] = (i / 2) * M_PI / 8;
+                    data[i] = sin(data[i + 1]);
+                }
+                genData = false;
+            }
+            ImGui::PlotLines("Sine", data, IM_ARRAYSIZE(data) / 2, 0, NULL, -1, 1, ImVec2(0, 0), 2 * sizeof(float));
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
